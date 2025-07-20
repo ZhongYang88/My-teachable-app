@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>AI Image Classifier</title>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 </head>
 <body>
   <h2>Upload an Image to Classify</h2>
+  
   <input type="file" accept="image/*" onchange="previewImage(event)">
   <br><br>
   <img id="preview" width="200" />
@@ -14,10 +15,13 @@
   <button onclick="predict()">Classify</button>
   <p id="result"></p>
 
+  <!-- ✅ Your script goes at the end of <body> -->
   <script>
-    // Replace this with your Teachable Machine model URL
+    // Replace with your Teachable Machine model URL
     const modelURL = "https://teachablemachine.withgoogle.com/models/4PG14lwFe/";
-    const scriptURL = "https://script.google.com/macros/s/AKfycbzFLycCqNhzdJmhJ1OG6qHvEUrlmu8LYYzn_hchUHOokVEJ1SYAN4vJv4G2LPEv9QkfXg/exec"; // Replace with your Google Script URL
+    
+    // Replace with your Google Apps Script Web App URL
+    const scriptURL = "https://script.google.com/macros/s/AKfycbzFLycCqNhzdJmhJ1OG6qHvEUrlmu8LYYzn_hchUHOokVEJ1SYAN4vJv4G2LPEv9QkfXg/exec";
 
     let model, imageElement;
 
@@ -33,25 +37,26 @@
     }
 
     async function predict() {
-      if (!imageElement) return;
+      if (!imageElement || !model) return;
+
       const prediction = await model.predict(imageElement);
       const best = prediction.sort((a, b) => b.probability - a.probability)[0];
 
-      document.getElementById("result").innerText = Prediction: ${best.className} (${(best.probability * 100).toFixed(2)}%);
+      document.getElementById("result").innerText =
+        `Prediction: ${best.className} (${(best.probability * 100).toFixed(2)}%)`;
 
-      // Send to Google Sheet
+      // Send result to Google Sheet
       fetch(scriptURL, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           prediction: best.className,
           confidence: best.probability
-        }),
-        headers: {
-          "Content-Type": "application/json"
-        }
+        })
       });
     }
   </script>
-
 </body>
 </html>
