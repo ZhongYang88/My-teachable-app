@@ -48,7 +48,7 @@
         `Prediction: ${best.className} (${(best.probability * 100).toFixed(2)}%)`;
 
       // Send result to Google Sheet
-      fetch(scriptURL, {
+    fetch(scriptURL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -57,6 +57,13 @@
           prediction: best.className,
           confidence: best.probability
         })
+      })
+      .then(res => res.text())
+      .then(responseText => {
+        console.log("✅ Google Sheet Response:", responseText);
+      })
+      .catch(err => {
+        console.error("❌ Failed to send to Google Sheets:", err);
       });
     }
   </script>
