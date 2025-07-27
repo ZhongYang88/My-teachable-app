@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <base target="_top">
+  <meta charset="UTF-8" />
   <title>AI Image Classifier</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 </head>
 <body>
   <h2>Upload an Image to Classify</h2>
-  <input type="file" accept="image/*" onchange="previewImage(event)">
+  <input type="file" accept="image/*" onchange="previewImage(event)" />
   <br><br>
   <img id="preview" width="200" />
   <br><br>
@@ -16,8 +16,8 @@
   <p id="result"></p>
 
   <script>
-    // Replace this with your Teachable Machine model URL
     const modelURL = "https://teachablemachine.withgoogle.com/models/4PG14lwFe/";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbyu9kjDq9GqDmn-rHiN2mDLABLgc2a5HWSh2tEWZBJmpa5Qc492fvZQsKf2H1fcoENUtQ/exec";
 
     let model, imageElement;
 
@@ -28,7 +28,7 @@
     loadModel();
 
     function previewImage(event) {
-      imageElement = document.getElementById('preview');
+      imageElement = document.getElementById("preview");
       imageElement.src = URL.createObjectURL(event.target.files[0]);
     }
 
@@ -41,15 +41,20 @@
       document.getElementById("result").innerText =
         `Prediction: ${best.className} (${(best.probability * 100).toFixed(2)}%)`;
 
-      // Send prediction data to Apps Script backend
-      google.script.run.withSuccessHandler(() => {
-        console.log("Saved to sheet!");
-      }).withFailureHandler(err => {
-        console.error("Error saving:", err);
-      }).savePrediction({
-        prediction: best.className,
-        confidence: best.probability
-      });
+      // Send result to Google Sheet
+      fetch(scriptURL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prediction: best.className,
+          confidence: best.probability
+        })
+      })
+      .then(res => res.text())
+      .then(msg => console.log("✅ Google Sheet Response:", msg))
+      .catch(err => console.error("❌ Failed to send to Google Sheets:", err));
     }
   </script>
 </body>
