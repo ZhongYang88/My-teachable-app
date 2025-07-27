@@ -1,68 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Teachable Machine Classifier</title>
+  <title>Recycle Classifier</title>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
 </head>
 <body>
-  <h1>Recycle Classifier</h1>
-  <button onclick="init()">Start Camera</button>
-  <button onclick="predict()">Classify</button>
-  <div id="label-container"></div>
+  <h2>Upload a Photo to Classify</h2>
+  
+  <input type="file" accept="image/*" id="imageUpload" />
+  <br><br>
+  <button onclick="predict()">Classify & Submit</button>
+  
+  <div id="result"></div>
 
   <script>
-    const URL = "https://teachablemachine.withgoogle.com/models/4PG14lwFe/";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw6nU5FNnEX5ID53a3vig4N3ucDSAO6m6HrRJhH2Di-qUkYLrxm20c7jO51J6od0JReZg/exec";
+    const URL = "https://teachablemachine.withgoogle.com/models/4PG14lwFe/"; // replace this
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw6nU5FNnEX5ID53a3vig4N3ucDSAO6m6HrRJhH2Di-qUkYLrxm20c7jO51J6od0JReZg/exec";  // replace this
 
-    let model, webcam, labelContainer, maxPredictions;
+    let model;
 
-    async function init() {
+    async function loadModel() {
       const modelURL = URL + "model.json";
       const metadataURL = URL + "metadata.json";
-
       model = await tmImage.load(modelURL, metadataURL);
-      maxPredictions = model.getTotalClasses();
-
-      webcam = new tmImage.Webcam(200, 200, true);
-      await webcam.setup();
-      await webcam.play();
-      window.requestAnimationFrame(loop);
-
-      document.body.appendChild(webcam.canvas);
-      labelContainer = document.getElementById("label-container");
-      for (let i = 0; i < maxPredictions; i++) {
-        labelContainer.appendChild(document.createElement("div"));
-      }
-    }
-
-    async function loop() {
-      webcam.update();
-      window.requestAnimationFrame(loop);
     }
 
     async function predict() {
-      const prediction = await model.predict(webcam.canvas);
+      const imageUpload = document.getElementById("imageUpload").files[0];
+      if (!imageUpload) return alert("Please upload an image");
+
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(imageUpload);
+      await new Promise(resolve => img.onload = resolve);
+
+      await loadModel();
+      const prediction = await model.predict(img);
       prediction.sort((a, b) => b.probability - a.probability);
       const best = prediction[0];
 
-      labelContainer.innerHTML = `Prediction: ${best.className}, Confidence: ${(
-        best.probability * 100
-      ).toFixed(2)}%`;
+      const data = {
+        prediction: best.className,
+        confidence: best.probability.toFixed(4)
+      };
 
-      // Send to Google Sheet
+      document.getElementById("result").innerText = `Predicted: ${best.className} (${(best.probability * 100).toFixed(2)}%)`;
+
       fetch(SCRIPT_URL, {
         method: "POST",
-        body: JSON.stringify({
-          prediction: best.className,
-          confidence: best.probability
-        }),
-        headers: {
-          "Content-Type": "application/json"
-        }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
       })
-      .then((res) => res.text())
-      .then((res) => console.log("✅ Success:", res))
-      .catch((err) => console.error("❌ Error:", err));
+      .then(res => res.text())
+      .then(text => alert("✅ Submitted to Google Sheets"))
+      .catch(err => alert("❌ Submission failed: " + err));
     }
   </script>
 </body>
